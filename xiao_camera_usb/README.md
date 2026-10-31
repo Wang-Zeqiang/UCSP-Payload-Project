@@ -1,32 +1,44 @@
 # XIAO ESP32S3 Sense Camera
 
-Take a JPEG photo over USB and save it on your Mac. No microSD card or `boot.py` changes are needed.
+Take a JPEG photo over USB and save it on a computer. Requires the Sense camera and CircuitPython firmware with `espcamera`. No microSD card or `boot.py` changes are needed.
 
-Keep this `README.md` beside `code.py` and `receive_photo.py` in the repository's `xiao_camera_usb` folder.
+## Setup
+
+Connect the board using a USB data cable and confirm that `CIRCUITPY` appears. Install the computer dependency if needed:
+
+```bash
+python3 -m pip install --user pyserial
+```
+
+On Windows, use `py` instead of `python3` throughout. If Homebrew Python reports `externally-managed-environment`, append `--break-system-packages` to the install command while keeping `--user`.
 
 ## Run
 
-Connect the board and confirm that `CIRCUITPY` appears in Finder. Close other serial monitors; exit Miniterm with **Control + ]**.
-
-Run these commands in Mac Terminal:
-
-```bash
-cd "/Users/zeqiang/Desktop/UCSP/UCSP-Payload-Project/xiao_camera_usb"
-cp code.py /Volumes/CIRCUITPY/code.py
-/opt/homebrew/bin/python3 receive_photo.py
-```
-
-The copy command replaces the board's current program. The ESP32 runs `code.py`; your Mac runs `receive_photo.py` to restart the board, request a photo, and receive it.
-
-The photo is saved as `xiao_photo_....jpg` on your Desktop and opens automatically.
-
-To take another photo, run again:
+1. Close other serial monitors; exit Miniterm with **Control + ]**.
+2. Copy this folder's `code.py` to the root of `CIRCUITPY`, replacing the board's current program. Back it up first if needed.
+3. Open a terminal in this repository's `xiao_camera_usb` folder and list the ports:
 
 ```bash
-/opt/homebrew/bin/python3 receive_photo.py
+python3 -m serial.tools.list_ports
 ```
 
-Copy `code.py` again only after editing it or switching from the sensor program. Do not run the board's `code.py` with Mac Python or VS Code's Python Run button.
+Take a photo, replacing `PORT` with the XIAO's port:
+
+```bash
+python3 receive_photo.py --port PORT --output photo.jpg
+```
+
+Typical port names are `/dev/cu.usbmodem...` on macOS, `/dev/ttyACM0` on Linux, or `COM3` on Windows. Use the actual port shown on your computer.
+
+The ESP32 runs `code.py`. The computer runs `receive_photo.py`, which restarts the board, requests a photo, and saves `photo.jpg` in the current folder. Open that file to view it; macOS also opens it automatically.
+
+Run again with a new filename, such as `photo2.jpg`, for another photo. Existing files are never overwritten. Copy `code.py` again only after changing it or switching from the sensor program. Do not run the board's `code.py` with computer Python or VS Code's Python Run button.
+
+On macOS, the shorter command below automatically finds a single USB modem port and saves a uniquely named photo to the Desktop:
+
+```bash
+python3 receive_photo.py
+```
 
 ## Functions
 
@@ -35,19 +47,15 @@ These run automatically; no manual function calls are needed.
 | Function | Purpose |
 | --- | --- |
 | Board `main()` | Initializes the camera and handles capture requests using `camera.take(2)`. |
-| Mac `choose_port()` | Finds the board's USB serial port. |
-| Mac `receive_image()` | Requests a photo, receives it, and checks the JPEG. |
-| Mac `main()` | Connects to the board, receives the photo, and saves it. |
+| Computer `choose_port()` | Finds a single `usbmodem` port when `--port` is omitted. |
+| Computer `receive_image()` | Requests, receives, and checks the JPEG. |
+| Computer `main()` | Connects to the board and saves the photo. |
 
 ## Troubleshooting
 
 - **Port busy:** close Miniterm, `screen`, and other serial monitors.
-- **Timeout:** confirm the camera program is saved as `CIRCUITPY/code.py`. The receiver must send `b"CAPTURE\r"`.
-- **No USB port:** check the data cable and board connection.
-- **No module named `serial`:** install the Mac dependency once:
+- **Timeout:** confirm the camera program is on `CIRCUITPY`. The receiver must send `b"CAPTURE\r"`.
+- **No USB port:** check the data cable and connection.
+- **Camera error:** disconnect power before checking the camera expansion board or ribbon connection.
 
-```bash
-/opt/homebrew/bin/python3 -m pip install --user --break-system-packages pyserial
-```
-
-For higher resolution, change `FrameSize.QVGA` (320 × 240) to `FrameSize.VGA` (640 × 480) in `code.py`, copy it to the board again, and rerun the receiver.
+For 640 × 480 photos, change `FrameSize.QVGA` to `FrameSize.VGA` in `code.py`, copy it to the board, and rerun the receiver. Keep this README beside both scripts in `xiao_camera_usb`.
